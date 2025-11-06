@@ -20,7 +20,7 @@ hive
 
 ## Full Hive Configuration (Self Note. NOT for students)  
 #Hive Installation  
-wget https://downloads.apache.org/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz  
+wget https://archive.apache.org/dist/hive/hive-3.1.2/apache-hive-3.1.2-bin.tar.gz 
 tar xzf apache-hive-3.1.2-bin.tar.gz  
 rm apache-hive-3.1.2-bin.tar.gz  
 sudo mv apache-hive-3.1.2-bin/ /opt/hive  
