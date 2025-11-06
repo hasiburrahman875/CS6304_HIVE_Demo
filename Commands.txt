@@ -15,7 +15,7 @@ Create Table Twitter (`date` date, date_time timestamp, tweet_text string, type 
 //Drop Table Twitter
 
 //load data
-Load Data Local Inpath '/home/cloudera/Downloads/HIVE_Demo/Twitter.txt' Into Table Twitter;
+Load Data Local Inpath 'Twitter.txt' Into Table Twitter;
 
 //see tweet_text where type is 'link'
 Select tweet_text, type From Twitter Where type='text' limit 3;
@@ -77,3 +77,4 @@ Select Count(*) From TwitterMod Where type='text';
 set hive.enforce.bucketing = true;
 Select Count(`date`) FROM TwitterMod Tablesample(Bucket 1 out of 3 on `date`);
 Select Count(`date`) FROM Twitter;
+
