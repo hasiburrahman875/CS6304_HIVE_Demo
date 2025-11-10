@@ -1,0 +1,137 @@
+1) Verify Environment Versions
+
+java -version
+hadoop version
+
+Check if java version is OpenJDK 17 (if not install it) and Hadoop version is 3.4.2
+
+2) Add Java and Hadoop paths in env variables
+
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/opt/hive
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/Hadoop
+export HADOOP_CLASSPATH="$($HADOOP_HOME/bin/hadoop classpath --glob)"
+
+
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native $HADOOP_OPTS \
+  --add-opens=java.base/java.lang=ALL-UNNAMED \
+  --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+  --add-opens=java.base/java.io=ALL-UNNAMED \
+  --add-opens=java.base/java.nio=ALL-UNNAMED \
+  --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+
+
+cat >> ~/.bashrc <<'EOF'
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export HADOOP_HOME=/usr/local/hadoop
+export HIVE_HOME=/opt/hive
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HIVE_HOME/bin
+export HADOOP_CLASSPATH="$($HADOOP_HOME/bin/hadoop classpath --glob)"
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib/native $HADOOP_OPTS \
+  --add-opens=java.base/java.lang=ALL-UNNAMED \
+  --add-opens=java.base/java.lang.reflect=ALL-UNNAMED \
+  --add-opens=java.base/java.io=ALL-UNNAMED \
+  --add-opens=java.base/java.nio=ALL-UNNAMED \
+  --add-opens=java.base/sun.nio.ch=ALL-UNNAMED"
+EOF
+
+source ~/.bashrc
+
+
+3) Check and Update Hive Configuration Directory
+
+cd /opt/hive/conf
+ls
+
+hive-site.xml was missing, so we have to create it manually
+
+touch hive-site.xml
+vi hive-site.xml and paste below content inside of it and save the file
+
+<configuration>
+  <!-- Embedded Derby metastore (single-user). Switch to Postgres/MySQL later if needed. -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:derby:;databaseName=/var/lib/hive/metastore_db;create=true</value>
+  </property>
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.apache.derby.jdbc.EmbeddedDriver</value>
+  </property>
+
+  <!-- HDFS warehouse location -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>/user/hive/warehouse</value>
+  </property>
+
+  <!-- Use MR engine unless you’ve set up Tez/Spark -->
+  <property>
+    <name>hive.execution.engine</name>
+    <value>mr</value>
+  </property>
+
+  <!-- Disable Impersonation -->
+  <property>
+    <name>hive.server2.enable.doAs</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>datanucleus.schema.autoCreateAll</name>
+    <value>true</value>
+  </property>
+
+</configuration>
+
+4) Fix Directory Permissions
+
+sudo mkdir -p /var/lib/hive
+sudo chown -R $USER:$USER /var/lib/hive
+
+5) run jps and check if hadoop services are active. If NOT active, then only run:
+
+stop-all.sh
+hadoop namenode -format
+start-all.sh
+
+6) Create Hive directories in HDFS (ONE TIME only)
+
+hdfs dfs -mkdir /tmp
+hdfs dfs -chmod g+w /tmp
+hdfs dfs -mkdir -p /user/hive/warehouse
+hdfs dfs -chmod g+w /user/hive/warehouse
+
+7) Initialize Derby and hive (ONE TIME only)
+
+schematool -initSchema -dbType derby
+
+8) Start Hive services
+
+hive --service hiveserver2 &
+
+This command starts the hive service in background. Press enter once hiveserver2 PID got created when started.
+
+To confirm if the services started correctly check using below command
+ss -ltnp | grep -E '10000' --- If you could see 10000 port active then it is started successfully
+
+
+9) Connect via Beeline
+
+beeline -u jdbc:hive2://localhost:10000 -n "$USER" -p ''
+
+Then inside Beeline:
+
+show databases;
+create database testdb;
+use testdb;
+create table sample (id int, name string);
+insert into sample values (1,'User'),(2,'HiveTest');
+select * from sample;
